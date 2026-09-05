@@ -36,6 +36,10 @@
   .banner.pointer { cursor: pointer; }
   .guide { margin: 80px 0 0; text-align: center; font-weight: 500; font-size: 14px; line-height: normal; }
   .dl-wrap { margin-top: 40px; }
+  .lang { position: absolute; top: 20px; right: 20px; z-index: 5; }
+  .lang select { appearance: none; -webkit-appearance: none; height: 32px; padding: 0 30px 0 12px; border: 1px solid var(--gray-c2); border-radius: 8px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%231B3158' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center; color: var(--navy); font: 600 12px/1 inherit; font-family: inherit; cursor: pointer; }
+  .lang select:hover { border-color: var(--navy); }
+  @media (max-width: 767px) { .lang { top: 12px; right: 12px; } }
 
 
   /* ================= Download button (218x59) ================= */
@@ -57,7 +61,7 @@
   @keyframes rot { to { transform: translate(-50%,-50%) rotate(360deg); } }
 
   /* ================= Popup (280x354) ================= */
-  #dim { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 50; }
+  #dim { position: fixed; inset: 0; background: rgba(0,0,0,.72); display: none; align-items: center; justify-content: center; z-index: 50; }
   #dim.open { display: flex; }
   .pop { position: relative; width: 280px; height: 354px; background: #fff; border: 1px solid var(--gray-c2); border-radius: 18px; overflow: hidden; }
   .pop .x { position: absolute; right: 13px; top: 13px; width: 20px; height: 20px; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center; }
@@ -91,9 +95,10 @@
 </head>
 <body>
 
+<div class="lang"><label for="langSel" class="sr" hidden>Language</label><select id="langSel" aria-label="Language"></select></div>
 <main>
   <img class="logo" src="assets/arc_logo.svg" alt="Arc" width="134" height="47">
-  <p class="welcome">Welcome. This is a space where you can create banners for Arc X.<br>You can easily create and download community-exclusive banners.</p>
+  <p class="welcome" data-i18n="welcome">Welcome. This is a space where you can create banners for Arc X.<br>You can easily create and download community-exclusive banners.</p>
 
   <div class="scroller" id="scroller">
     <div class="banner-box">
@@ -105,7 +110,7 @@
 
   <div class="dl-wrap">
     <button class="dl" id="dl" disabled>
-      <span>Image Download</span>
+      <span data-i18n="download">Image Download</span>
       <img class="ic spin" src="assets/spinner_a.svg" alt="">
       <img class="ic check" src="assets/icon_check.svg" alt="">
     </button>
@@ -121,9 +126,9 @@
       <p class="hint" id="popHint"></p>
       <img class="thumb" id="popThumb" alt="">
       <p class="fname" id="popFname"></p>
-      <button class="browse" id="browse" type="button">Browse..</button>
+      <button class="browse" id="browse" type="button" data-i18n="browse">Browse..</button>
     </div>
-    <button class="confirm" id="confirm" type="button">Confirm</button>
+    <button class="confirm" id="confirm" type="button" data-i18n="confirm">Confirm</button>
     <input type="file" id="file" accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif,image/*">
   </div>
 </div>
@@ -135,12 +140,135 @@
     1: { x: 746,  y: 199, w: 60,  h: 60,  round: true  },
     2: { x: 1255, y: 236, w: 154, h: 95,  round: false }
   };
-  var HINT = {
-    1: 'Add an image or character that represents you.<em>(Best Size:60x60px or larger)</em>',
-    2: 'add in an image of a national flag, company logo, or an image you like.<em>(Best Size:154x95px or larger)</em>'
+  // ---------- i18n (default English; auto-detects browser language; manual switch top-right) ----------
+  var I18N = {
+    en: { name: 'English',
+      welcome: 'Welcome. This is a space where you can create banners for Arc X.<br>You can easily create and download community-exclusive banners.',
+      guide: 'Please upload images to the blue circle (Step 01)<br>and the red square (Step 02).',
+      done: 'Great! The exclusive Arc X banner, available for download in<br>1500x500 px, is ready. Please click the download button below.',
+      hint1: 'Add an image or character that represents you.', size1: '(Best Size:60x60px or larger)',
+      hint2: 'add in an image of a national flag, company logo, or an image you like.', size2: '(Best Size:154x95px or larger)',
+      browse: 'Browse..', confirm: 'Confirm', download: 'Image Download', close: 'Close' },
+    ko: { name: '한국어',
+      welcome: '환영합니다. Arc X 배너를 만드는 공간입니다.<br>커뮤니티 전용 배너를 쉽게 만들고 다운로드할 수 있어요.',
+      guide: '파란 원(Step 01)과 빨간 사각형(Step 02)에<br>이미지를 업로드해 주세요.',
+      done: '완성! 1500x500 px Arc X 전용 배너가 준비됐습니다.<br>아래 다운로드 버튼을 눌러 주세요.',
+      hint1: '나를 대표하는 이미지나 캐릭터를 넣어 주세요.', size1: '(권장 크기: 60x60px 이상)',
+      hint2: '국기, 회사 로고, 좋아하는 이미지를 넣어 주세요.', size2: '(권장 크기: 154x95px 이상)',
+      browse: '파일 선택', confirm: '확인', download: '이미지 다운로드', close: '닫기' },
+    vi: { name: 'Tiếng Việt',
+      welcome: 'Chào mừng. Đây là nơi bạn tạo banner cho Arc X.<br>Dễ dàng tạo và tải về banner dành riêng cho cộng đồng.',
+      guide: 'Hãy tải ảnh lên vòng tròn xanh (Bước 01)<br>và ô vuông đỏ (Bước 02).',
+      done: 'Tuyệt! Banner Arc X kích cỡ 1500x500 px đã sẵn sàng.<br>Nhấn nút tải về bên dưới.',
+      hint1: 'Thêm ảnh hoặc nhân vật đại diện cho bạn.', size1: '(Kích cỡ tốt nhất: 60x60px hoặc lớn hơn)',
+      hint2: 'Thêm quốc kỳ, logo công ty hoặc ảnh bạn thích.', size2: '(Kích cỡ tốt nhất: 154x95px hoặc lớn hơn)',
+      browse: 'Chọn tệp', confirm: 'Xác nhận', download: 'Tải ảnh về', close: 'Đóng' },
+    hi: { name: 'हिन्दी',
+      welcome: 'स्वागत है। यहाँ आप Arc X के लिए बैनर बना सकते हैं।<br>कम्युनिटी-एक्सक्लूसिव बैनर आसानी से बनाएँ और डाउनलोड करें।',
+      guide: 'कृपया नीले वृत्त (Step 01) और लाल वर्ग (Step 02) में<br>इमेज अपलोड करें।',
+      done: 'बधाई! 1500x500 px का Arc X बैनर तैयार है।<br>नीचे डाउनलोड बटन दबाएँ।',
+      hint1: 'अपनी पहचान दर्शाने वाली इमेज या कैरेक्टर जोड़ें।', size1: '(सर्वोत्तम आकार: 60x60px या बड़ा)',
+      hint2: 'राष्ट्रीय ध्वज, कंपनी लोगो या अपनी पसंदीदा इमेज जोड़ें।', size2: '(सर्वोत्तम आकार: 154x95px या बड़ा)',
+      browse: 'फ़ाइल चुनें', confirm: 'पुष्टि करें', download: 'इमेज डाउनलोड', close: 'बंद करें' },
+    bn: { name: 'বাংলা',
+      welcome: 'স্বাগতম। এখানে আপনি Arc X-এর জন্য ব্যানার তৈরি করতে পারেন।<br>কমিউনিটি-এক্সক্লুসিভ ব্যানার সহজেই তৈরি ও ডাউনলোড করুন।',
+      guide: 'অনুগ্রহ করে নীল বৃত্তে (Step 01) এবং লাল বর্গে (Step 02)<br>ছবি আপলোড করুন।',
+      done: 'চমৎকার! 1500x500 px Arc X ব্যানার প্রস্তুত।<br>নিচের ডাউনলোড বোতামে ক্লিক করুন।',
+      hint1: 'আপনাকে উপস্থাপন করে এমন ছবি বা চরিত্র যোগ করুন।', size1: '(সেরা আকার: 60x60px বা বড়)',
+      hint2: 'জাতীয় পতাকা, কোম্পানির লোগো বা পছন্দের ছবি যোগ করুন।', size2: '(সেরা আকার: 154x95px বা বড়)',
+      browse: 'ফাইল বাছুন', confirm: 'নিশ্চিত করুন', download: 'ছবি ডাউনলোড', close: 'বন্ধ' },
+    id: { name: 'Bahasa Indonesia',
+      welcome: 'Selamat datang. Di sini kamu bisa membuat banner untuk Arc X.<br>Buat dan unduh banner eksklusif komunitas dengan mudah.',
+      guide: 'Unggah gambar ke lingkaran biru (Step 01)<br>dan kotak merah (Step 02).',
+      done: 'Bagus! Banner Arc X ukuran 1500x500 px sudah siap.<br>Klik tombol unduh di bawah.',
+      hint1: 'Tambahkan gambar atau karakter yang mewakili dirimu.', size1: '(Ukuran terbaik: 60x60px atau lebih)',
+      hint2: 'Tambahkan bendera negara, logo perusahaan, atau gambar favoritmu.', size2: '(Ukuran terbaik: 154x95px atau lebih)',
+      browse: 'Pilih file', confirm: 'Konfirmasi', download: 'Unduh Gambar', close: 'Tutup' },
+    tl: { name: 'Filipino',
+      welcome: 'Maligayang pagdating. Dito ka makakagawa ng banner para sa Arc X.<br>Madaling gumawa at mag-download ng community-exclusive na banner.',
+      guide: 'Mag-upload ng larawan sa asul na bilog (Step 01)<br>at pulang parisukat (Step 02).',
+      done: 'Ayos! Handa na ang Arc X banner na 1500x500 px.<br>I-click ang download button sa ibaba.',
+      hint1: 'Maglagay ng larawan o character na kumakatawan sa iyo.', size1: '(Pinakamainam: 60x60px o mas malaki)',
+      hint2: 'Maglagay ng bandila, logo ng kumpanya, o paboritong larawan.', size2: '(Pinakamainam: 154x95px o mas malaki)',
+      browse: 'Pumili ng file', confirm: 'Kumpirmahin', download: 'I-download', close: 'Isara' },
+    es: { name: 'Español',
+      welcome: 'Bienvenido. Aquí puedes crear banners para Arc X.<br>Crea y descarga fácilmente banners exclusivos de la comunidad.',
+      guide: 'Sube imágenes al círculo azul (Step 01)<br>y al cuadrado rojo (Step 02).',
+      done: '¡Listo! Tu banner Arc X de 1500x500 px está preparado.<br>Pulsa el botón de descarga.',
+      hint1: 'Añade una imagen o personaje que te represente.', size1: '(Tamaño ideal: 60x60px o mayor)',
+      hint2: 'Añade una bandera, el logo de tu empresa o una imagen que te guste.', size2: '(Tamaño ideal: 154x95px o mayor)',
+      browse: 'Elegir archivo', confirm: 'Confirmar', download: 'Descargar imagen', close: 'Cerrar' },
+    pt: { name: 'Português',
+      welcome: 'Bem-vindo. Aqui você cria banners para o Arc X.<br>Crie e baixe facilmente banners exclusivos da comunidade.',
+      guide: 'Envie imagens para o círculo azul (Step 01)<br>e o quadrado vermelho (Step 02).',
+      done: 'Pronto! Seu banner Arc X de 1500x500 px está preparado.<br>Clique no botão de download abaixo.',
+      hint1: 'Adicione uma imagem ou personagem que represente você.', size1: '(Tamanho ideal: 60x60px ou maior)',
+      hint2: 'Adicione uma bandeira, logo da empresa ou uma imagem que goste.', size2: '(Tamanho ideal: 154x95px ou maior)',
+      browse: 'Escolher arquivo', confirm: 'Confirmar', download: 'Baixar imagem', close: 'Fechar' },
+    fr: { name: 'Français',
+      welcome: 'Bienvenue. Ici, vous créez des bannières pour Arc X.<br>Créez et téléchargez facilement des bannières exclusives à la communauté.',
+      guide: 'Ajoutez des images dans le cercle bleu (Step 01)<br>et le carré rouge (Step 02).',
+      done: 'Parfait ! Votre bannière Arc X en 1500x500 px est prête.<br>Cliquez sur le bouton de téléchargement.',
+      hint1: 'Ajoutez une image ou un personnage qui vous représente.', size1: '(Taille idéale : 60x60px ou plus)',
+      hint2: 'Ajoutez un drapeau, un logo d\'entreprise ou une image que vous aimez.', size2: '(Taille idéale : 154x95px ou plus)',
+      browse: 'Parcourir', confirm: 'Confirmer', download: 'Télécharger', close: 'Fermer' },
+    tr: { name: 'Türkçe',
+      welcome: 'Hoş geldiniz. Burada Arc X için banner oluşturabilirsiniz.<br>Topluluğa özel bannerları kolayca oluşturup indirin.',
+      guide: 'Lütfen mavi daireye (Step 01) ve kırmızı kareye (Step 02)<br>görsel yükleyin.',
+      done: 'Harika! 1500x500 px Arc X bannerınız hazır.<br>Aşağıdaki indir düğmesine tıklayın.',
+      hint1: 'Sizi temsil eden bir görsel veya karakter ekleyin.', size1: '(En iyi boyut: 60x60px veya daha büyük)',
+      hint2: 'Bayrak, şirket logosu veya sevdiğiniz bir görsel ekleyin.', size2: '(En iyi boyut: 154x95px veya daha büyük)',
+      browse: 'Dosya seç', confirm: 'Onayla', download: 'Görseli İndir', close: 'Kapat' },
+    ja: { name: '日本語',
+      welcome: 'ようこそ。ここは Arc X 用バナーを作る場所です。<br>コミュニティ限定バナーを簡単に作成・ダウンロードできます。',
+      guide: '青い円（Step 01）と赤い四角（Step 02）に<br>画像をアップロードしてください。',
+      done: '完成！1500x500 px の Arc X バナーができました。<br>下のダウンロードボタンを押してください。',
+      hint1: 'あなたを表す画像やキャラクターを追加してください。', size1: '（推奨サイズ：60x60px 以上）',
+      hint2: '国旗、会社ロゴ、好きな画像を追加してください。', size2: '（推奨サイズ：154x95px 以上）',
+      browse: 'ファイル選択', confirm: '確定', download: '画像をダウンロード', close: '閉じる' },
+    zh: { name: '中文',
+      welcome: '欢迎。在这里你可以制作 Arc X 横幅。<br>轻松创建并下载社区专属横幅。',
+      guide: '请将图片上传到蓝色圆形（Step 01）<br>和红色方块（Step 02）。',
+      done: '太棒了！1500x500 px 的 Arc X 横幅已准备好。<br>请点击下方下载按钮。',
+      hint1: '添加一张代表你的图片或角色。', size1: '（推荐尺寸：60x60px 或更大）',
+      hint2: '添加国旗、公司标志或你喜欢的图片。', size2: '（推荐尺寸：154x95px 或更大）',
+      browse: '选择文件', confirm: '确认', download: '下载图片', close: '关闭' },
+    th: { name: 'ไทย',
+      welcome: 'ยินดีต้อนรับ ที่นี่คุณสร้างแบนเนอร์สำหรับ Arc X ได้<br>สร้างและดาวน์โหลดแบนเนอร์เฉพาะคอมมูนิตี้ได้ง่าย ๆ',
+      guide: 'กรุณาอัปโหลดรูปลงในวงกลมสีฟ้า (Step 01)<br>และสี่เหลี่ยมสีแดง (Step 02)',
+      done: 'เยี่ยม! แบนเนอร์ Arc X ขนาด 1500x500 px พร้อมแล้ว<br>กดปุ่มดาวน์โหลดด้านล่าง',
+      hint1: 'เพิ่มรูปหรือตัวละครที่แทนตัวคุณ', size1: '(ขนาดที่แนะนำ: 60x60px หรือใหญ่กว่า)',
+      hint2: 'เพิ่มธงชาติ โลโก้บริษัท หรือรูปที่คุณชอบ', size2: '(ขนาดที่แนะนำ: 154x95px หรือใหญ่กว่า)',
+      browse: 'เลือกไฟล์', confirm: 'ยืนยัน', download: 'ดาวน์โหลดรูป', close: 'ปิด' }
   };
-  var GUIDE_DEFAULT = 'Please upload images to the blue circle (Step 01)<br>and the red square (Step 02).';
-  var GUIDE_DONE = 'Great! The exclusive Arc X banner, available for download in<br>1500x500 px, is ready. Please click the download button below.';
+  var LANG_ORDER = ['en', 'vi', 'hi', 'bn', 'ko', 'id', 'tl', 'es', 'pt', 'fr', 'tr', 'ja', 'zh', 'th'];
+  var lang = 'en';
+  function T(k) { return (I18N[lang] && I18N[lang][k]) || I18N.en[k]; }
+  function detectLang() {
+    try { var saved = localStorage.getItem('arcx-lang'); if (saved && I18N[saved]) return saved; } catch (e) {}
+    var list = navigator.languages || [navigator.language || 'en'];
+    for (var i = 0; i < list.length; i++) { var c = String(list[i]).toLowerCase().split('-')[0]; if (c === 'fil') c = 'tl'; if (I18N[c]) return c; }
+    return 'en';
+  }
+  var HINT = {}, GUIDE_DEFAULT = '', GUIDE_DONE = '';
+  function applyLang(code) {
+    lang = I18N[code] ? code : 'en';
+    document.documentElement.lang = lang;
+    try { localStorage.setItem('arcx-lang', lang); } catch (e) {}
+    HINT[1] = T('hint1') + '<em>' + T('size1') + '</em>';
+    HINT[2] = T('hint2') + '<em>' + T('size2') + '</em>';
+    GUIDE_DEFAULT = T('guide'); GUIDE_DONE = T('done');
+    document.querySelectorAll('[data-i18n]').forEach(function (el) { el.innerHTML = T(el.getAttribute('data-i18n')); });
+    var x = document.getElementById('popX'); if (x) x.setAttribute('aria-label', T('close'));
+    var sel = document.getElementById('langSel'); if (sel && sel.value !== lang) sel.value = lang;
+    if (typeof current === 'number' && current) { document.getElementById('popHint').innerHTML = HINT[current]; }
+    if (typeof render === 'function' && typeof state !== 'undefined') render();
+  }
+  (function initLangSel() {
+    var sel = document.getElementById('langSel');
+    LANG_ORDER.forEach(function (c) { var o = document.createElement('option'); o.value = c; o.textContent = I18N[c].name; sel.appendChild(o); });
+    sel.addEventListener('change', function () { applyLang(sel.value); });
+  })();
 
   var state = { 1: null, 2: null }; // { url, img, name }
   var current = null, pending = null;
@@ -311,7 +439,7 @@
       });
   });
 
-  render();
+  applyLang(detectLang());
 })();
 </script>
 </body>
