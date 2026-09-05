@@ -152,7 +152,7 @@
     1: { x: 746,  y: 199, w: 60,  h: 60,  round: true  },
     2: { x: 1255, y: 236, w: 154, h: 95,  round: false }
   };
-  // ---------- i18n (default English; auto-detects browser language; manual switch top-right) ----------
+  // ---------- i18n (always starts in English; manual switch top-right, choice remembered) ----------
   var I18N = {
     en: { name: 'English',
       welcome: 'Welcome. This is a space where you can create banners for Arc X.<br>You can easily create and download community-exclusive banners.',
@@ -258,9 +258,7 @@
   function T(k) { return (I18N[lang] && I18N[lang][k]) || I18N.en[k]; }
   function detectLang() {
     try { var saved = localStorage.getItem('arcx-lang'); if (saved && I18N[saved]) return saved; } catch (e) {}
-    var list = navigator.languages || [navigator.language || 'en'];
-    for (var i = 0; i < list.length; i++) { var c = String(list[i]).toLowerCase().split('-')[0]; if (c === 'fil') c = 'tl'; if (I18N[c]) return c; }
-    return 'en';
+    return 'en'; // default is always English; only an explicit user choice (saved above) overrides it
   }
   var HINT = {}, GUIDE_DEFAULT = '', GUIDE_DONE = '';
   var typing = null;
