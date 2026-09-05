@@ -34,7 +34,10 @@
   .scroller { margin-top: 32px; width: 100%; display: flex; justify-content: center; }
   .banner-box { position: relative; width: calc(1500px * var(--bs)); height: calc(500px * var(--bs)); flex: 0 0 auto; }
   .banner { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; background: #fff; touch-action: manipulation; }
-  .banner.pointer { cursor: pointer; }
+  .banner.pointer, .crop.pointer { cursor: pointer; }
+  /* Mobile: Figma MOBILE frame = two stacked crops of the banner (Step 01 view / Step 02 view), full-bleed, no horizontal scroll */
+  .crops { display: none; }
+  .crop { display: block; width: 100%; aspect-ratio: 360 / 372; background: #fff; touch-action: manipulation; }
   .guide { margin: 80px 0 0; text-align: center; font-weight: 500; font-size: 14px; line-height: normal; }
   .dl-wrap { margin-top: 40px; }
   .lang { position: absolute; top: 20px; right: 20px; z-index: 5; }
@@ -88,8 +91,8 @@
     :root { --gutter: 16px; }
     main { padding-top: 60px; }
     .welcome { max-width: 310px; margin-top: 32px; }
-    .scroller { justify-content: flex-start; margin-left: calc(-1 * var(--gutter)); width: calc(100% + 2 * var(--gutter)); overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-    .scroller::-webkit-scrollbar { display: none; }
+    .scroller { display: none; }
+    .crops { display: block; margin-top: 32px; margin-left: calc(-1 * var(--gutter)); width: calc(100% + 2 * var(--gutter)); }
     .guide { max-width: 323px; margin-top: 40px; }
   }
 </style>
@@ -105,6 +108,10 @@
     <div class="banner-box">
       <canvas class="banner" id="banner" width="1500" height="500" role="img" aria-label="Arc X banner preview. Click the blue circle (Step 01) or the red square (Step 02) to upload an image."></canvas>
     </div>
+  </div>
+  <div class="crops" id="crops">
+    <canvas class="crop" id="crop1" width="720" height="744" data-off="378" role="img" aria-label="Banner, Step 01 area. Tap the blue circle to upload your image."></canvas>
+    <canvas class="crop" id="crop2" width="720" height="744" data-off="756" role="img" aria-label="Banner, Step 02 area. Tap the red square to upload a flag or logo."></canvas>
   </div>
 
   <p class="guide" id="guide">Please upload images to the blue circle (Step 01)<br>and the red square (Step 02).</p>
@@ -276,6 +283,8 @@
 
   var banner = document.getElementById('banner'), guide = document.getElementById('guide'), dl = document.getElementById('dl');
   var scroller = document.getElementById('scroller');
+  var MK = 1116 / 1500; // Figma MOBILE: banner rendered at 1116x372 and cropped to 360-wide windows
+  var crops = Array.prototype.slice.call(document.querySelectorAll('.crop'));
 
   // ---------- responsive banner scale ----------
   function isMobile() { return window.matchMedia('(max-width: 767px)').matches; }
@@ -291,10 +300,7 @@
     document.documentElement.style.setProperty('--bs', bs);
   }
   fit(); window.addEventListener('resize', fit);
-  window.addEventListener('load', function () {
-    // Figma MOBILE frame shows the banner scrolled to its center
-    if (isMobile()) scroller.scrollLeft = Math.max(0, (scroller.scrollWidth - scroller.clientWidth) / 2);
-  });
+
 
   // ---------- popup ----------
   var dim = document.getElementById('dim'), pop = document.getElementById('pop');
@@ -382,22 +388,41 @@
       ctx.lineWidth = 1; ctx.strokeStyle = '#000'; slotPath(ctx, g, 0.5); ctx.stroke();
     });
   }
+  var master = document.createElement('canvas'); master.width = 1500; master.height = 500;
+  var mctx = master.getContext('2d');
   var bctx = banner.getContext('2d');
-  function paint() { drawScene(bctx); }
+  function paint() {
+    drawScene(mctx);
+    bctx.clearRect(0, 0, 1500, 500); bctx.drawImage(master, 0, 0);
+    crops.forEach(function (c) {
+      var off = +c.dataset.off; // crop window starts at this x in 1116-space
+      var sx = off / MK, sw = 360 / MK;
+      var ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.drawImage(master, sx, 0, sw, 500, 0, 0, c.width, c.height);
+    });
+  }
 
-  function hitTest(evt) {
-    var r = banner.getBoundingClientRect();
-    var x = (evt.clientX - r.left) * 1500 / r.width, y = (evt.clientY - r.top) * 500 / r.height;
+  // map a pointer event on any view back to banner-space (1500x500)
+  function toBanner(el, evt) {
+    var r = el.getBoundingClientRect();
+    if (el === banner) return { x: (evt.clientX - r.left) * 1500 / r.width, y: (evt.clientY - r.top) * 500 / r.height };
+    var off = +el.dataset.off;
+    return { x: off / MK + (evt.clientX - r.left) / r.width * (360 / MK), y: (evt.clientY - r.top) * 500 / r.height };
+  }
+  function hitAt(p) {
     for (var s = 1; s <= 2; s++) {
       var g = GEO[s];
-      if (g.round) { var dx = x - (g.x + g.w / 2), dy = y - (g.y + g.h / 2); if (dx * dx + dy * dy <= (g.w / 2) * (g.w / 2)) return s; }
-      else if (x >= g.x && x <= g.x + g.w && y >= g.y && y <= g.y + g.h) return s;
+      if (g.round) { var dx = p.x - (g.x + g.w / 2), dy = p.y - (g.y + g.h / 2); if (dx * dx + dy * dy <= (g.w / 2) * (g.w / 2)) return s; }
+      else if (p.x >= g.x && p.x <= g.x + g.w && p.y >= g.y && p.y <= g.y + g.h) return s;
     }
     return null;
   }
-  banner.addEventListener('mousemove', function (e) { var h = hitTest(e); if (h !== hover) { hover = h; banner.classList.toggle('pointer', !!h); paint(); } });
-  banner.addEventListener('mouseleave', function () { if (hover) { hover = null; banner.classList.remove('pointer'); paint(); } });
-  banner.addEventListener('click', function (e) { var h = hitTest(e); if (h) openPop(h); });
+  [banner].concat(crops).forEach(function (el) {
+    el.addEventListener('mousemove', function (e) { var h = hitAt(toBanner(el, e)); if (h !== hover) { hover = h; el.classList.toggle('pointer', !!h); paint(); } });
+    el.addEventListener('mouseleave', function () { if (hover) { hover = null; el.classList.remove('pointer'); paint(); } });
+    el.addEventListener('click', function (e) { var h = hitAt(toBanner(el, e)); if (h) openPop(h); });
+  });
 
   function render() {
     var both = !!(state[1] && state[2]);
