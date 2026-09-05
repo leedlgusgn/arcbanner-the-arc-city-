@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arc X Banner Maker</title>
+<meta name="description" content="Create and download your own Arc community X/Twitter banner (1500x500).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1B3158;
+    --gray-c2: #C2C2C2;
+    --gray-6d: #6D6D6D;
+    --gray-9e: #9E9E9E;
+    --step1: #938FFF;
+    --step2: #FF7070;
+    --grad: linear-gradient(180deg, #041854 0%, #13328F 30.769%, #AE90C7 73.077%, #DC9E67 100%);
+    --bs: 1;      /* banner scale (1500 logical px -> screen) */
+    --gutter: 40px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #000; font-family: "Noto Sans", -apple-system, "Segoe UI", Roboto, "Apple SD Gothic Neo", sans-serif; }
+  body { min-height: 100vh; overflow-x: hidden; }
+  button { font-family: inherit; cursor: pointer; border: 0; }
+  img { display: block; }
+
+  /* ================= Page flow (Figma 1920 spacing: logo 80 / text 159 / banner 229 / guide 809 / button 887) ================= */
+  main { display: flex; flex-direction: column; align-items: center; padding: 80px var(--gutter) 80px; min-height: 100vh; }
+  .logo { width: 134px; height: 47px; }
+  .welcome { margin: 32px 0 0; text-align: center; font-weight: 700; font-size: 14px; line-height: normal; }
+  .scroller { margin-top: 32px; width: 100%; display: flex; justify-content: center; }
+  .banner-box { position: relative; width: calc(1500px * var(--bs)); height: calc(500px * var(--bs)); flex: 0 0 auto; }
+  .banner { position: absolute; left: 0; top: 0; width: 1500px; height: 500px; overflow: hidden; background: #fff; transform: scale(var(--bs)); transform-origin: 0 0; }
+  .guide { margin: 80px 0 0; text-align: center; font-weight: 500; font-size: 14px; line-height: normal; }
+  .dl-wrap { margin-top: 40px; }
+
+  /* ================= Banner component (1500x500 logical) ================= */
+  .banner > .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .hot { position: absolute; padding: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 20px; line-height: 1; border: 1px solid #000; overflow: hidden; }
+  .hot::after { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,0); transition: background .15s; pointer-events: none; }
+  .hot:hover::after { background: rgba(255,255,255,.4); }
+  .hot.filled::after { display: none; }
+  .hot .ph { position: relative; }
+  .hot.filled .ph { display: none; }
+  .hot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+  .hot.filled img { display: block; }
+  .hot-1 { left: 747px; top: 200px; width: 58px; height: 58px; border-radius: 50%; background: var(--step1); }
+  .hot-2 { left: 1255px; top: 236px; width: 154px; height: 95px; background: var(--step2); }
+  .hot.filled { background: #fff; }
+
+  /* ================= Download button (218x59) ================= */
+  .dl {
+    position: relative; display: inline-flex; align-items: center; justify-content: center;
+    min-width: 218px; height: 59px; padding: 16px 24px; border-radius: 8px;
+    font-weight: 700; font-size: 20px; line-height: normal; white-space: nowrap;
+    background: var(--gray-6d); color: var(--gray-9e); cursor: not-allowed; overflow: hidden;
+  }
+  .dl.active { background: var(--grad); color: #fff; cursor: pointer; }
+  .dl.active::after { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,0); transition: background .15s; }
+  .dl.active:hover::after { background: rgba(255,255,255,.2); }
+  .dl.loading, .dl.done { pointer-events: none; }
+  .dl.loading span, .dl.done span { visibility: hidden; }
+  .dl .ic { position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; transform: translate(-50%,-50%); display: none; }
+  .dl.loading .ic.spin { display: block; animation: rot 1s linear infinite; }
+  .dl.done { background: #000; }
+  .dl.done .ic.check { display: block; }
+  @keyframes rot { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+  /* ================= Popup (280x354) ================= */
+  #dim { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 50; }
+  #dim.open { display: flex; }
+  .pop { position: relative; width: 280px; height: 354px; background: #fff; border: 1px solid var(--gray-c2); border-radius: 18px; overflow: hidden; }
+  .pop .x { position: absolute; right: 13px; top: 13px; width: 20px; height: 20px; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center; }
+  .pop .title { position: absolute; left: 50%; top: 31px; transform: translateX(-50%); text-align: center; margin: 0; white-space: nowrap; line-height: normal; }
+  .pop .title b { display: block; font-size: 18px; font-weight: 700; color: var(--navy); }
+  .pop .title small { display: block; font-size: 18px; font-weight: 500; color: var(--gray-c2); }
+  .pop .drop { position: absolute; left: 50%; top: 113px; transform: translateX(-50%); width: 223px; height: 135px; border: 2px dashed var(--gray-c2); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 12px; text-align: center; cursor: pointer; }
+  .pop .drop.over { border-color: var(--navy); }
+  .pop .hint { margin: 0; font-size: 11px; font-weight: 600; color: var(--gray-c2); line-height: normal; width: 178px; }
+  .pop .hint em { display: block; font-style: normal; font-weight: 400; }
+  .pop .thumb { width: 44px; height: 44px; object-fit: cover; border: 1px solid #000; display: none; }
+  .pop .fname { margin: 0; font-size: 11px; font-weight: 600; color: var(--navy); width: 178px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: none; }
+  .pop.has .hint { display: none; }
+  .pop.has .fname, .pop.has .thumb { display: block; }
+  .pop .browse { width: 80px; height: 23px; padding: 4px 24px; border-radius: 4px; background: #000; color: #fff; font-size: 11px; font-weight: 700; line-height: 1; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+  .pop .browse:hover { background: #303030; }
+  .pop .confirm { position: absolute; left: 50%; top: 277px; transform: translateX(-50%); width: 160px; height: 44px; padding: 11px 24px; border-radius: 8px; background: var(--gray-6d); color: var(--gray-9e); font-size: 16px; font-weight: 700; line-height: normal; cursor: not-allowed; }
+  .pop.has .confirm { background: var(--navy); color: #fff; cursor: pointer; }
+  input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+  /* ================= Mobile (Figma MOBILE frame: horizontally scrollable banner) ================= */
+  @media (max-width: 767px) {
+    :root { --gutter: 16px; }
+    main { padding-top: 60px; }
+    .welcome { max-width: 310px; margin-top: 32px; }
+    .scroller { justify-content: flex-start; margin-left: calc(-1 * var(--gutter)); width: calc(100% + 2 * var(--gutter)); overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .scroller::-webkit-scrollbar { display: none; }
+    .guide { max-width: 323px; margin-top: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<main>
+  <img class="logo" src="assets/arc_logo.svg" alt="Arc" width="134" height="47">
+  <p class="welcome">Welcome. This is a space where you can create banners for Arc X.<br>You can easily create and download community-exclusive banners.</p>
+
+  <div class="scroller" id="scroller">
+    <div class="banner-box">
+      <div class="banner" id="banner">
+        <img class="bg" src="assets/arc_city.jpg" alt="The Arc City ; Builders of the Economic OS">
+        <button class="hot hot-1" data-step="1" aria-label="Step 01: upload your image"><span class="ph">+</span><img alt=""></button>
+        <button class="hot hot-2" data-step="2" aria-label="Step 02: upload a flag, logo or image"><span class="ph">+</span><img alt=""></button>
+      </div>
+    </div>
+  </div>
+
+  <p class="guide" id="guide">Please upload images to the blue circle (Step 01)<br>and the red square (Step 02).</p>
+
+  <div class="dl-wrap">
+    <button class="dl" id="dl" disabled>
+      <span>Image Download</span>
+      <img class="ic spin" src="assets/spinner_a.svg" alt="">
+      <img class="ic check" src="assets/icon_check.svg" alt="">
+    </button>
+  </div>
+</main>
+
+<!-- ============ Popup ============ -->
+<div id="dim" role="dialog" aria-modal="true">
+  <div class="pop" id="pop">
+    <button class="x" id="popX" aria-label="Close"><img src="assets/icon_close.svg" width="12" height="12" alt=""></button>
+    <p class="title"><b id="popStep">Step.01</b><small>(jpg,png,svg)</small></p>
+    <div class="drop" id="drop">
+      <p class="hint" id="popHint"></p>
+      <img class="thumb" id="popThumb" alt="">
+      <p class="fname" id="popFname"></p>
+      <button class="browse" id="browse" type="button">Browse..</button>
+    </div>
+    <button class="confirm" id="confirm" type="button">Confirm</button>
+    <input type="file" id="file" accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif,image/*">
+  </div>
+</div>
+
+<script>
+(function () {
+  // ---------- geometry (from Figma, banner-local coords in 1500x500) ----------
+  var GEO = {
+    1: { x: 747,  y: 200, w: 58,  h: 58,  round: true  },
+    2: { x: 1255, y: 236, w: 154, h: 95,  round: false }
+  };
+  var HINT = {
+    1: 'Add an image or character that represents you.<em>(Best Size:58x58px or larger)</em>',
+    2: 'add in an image of a national flag, company logo, or an image you like.<em>(Best Size:154x95px or larger)</em>'
+  };
+  var GUIDE_DEFAULT = 'Please upload images to the blue circle (Step 01)<br>and the red square (Step 02).';
+  var GUIDE_DONE = 'Great! The exclusive Arc X banner, available for download in<br>1500x500 px, is ready. Please click the download button below.';
+
+  var state = { 1: null, 2: null }; // { url, img, name }
+  var current = null, pending = null;
+
+  var banner = document.getElementById('banner'), guide = document.getElementById('guide'), dl = document.getElementById('dl');
+  var scroller = document.getElementById('scroller');
+
+  // ---------- responsive banner scale ----------
+  function isMobile() { return window.matchMedia('(max-width: 767px)').matches; }
+  function fit() {
+    var vw = document.documentElement.clientWidth;
+    var bs;
+    if (isMobile()) {
+      bs = 1116 / 1500; // Figma MOBILE: banner 1116x372, scrolls horizontally
+    } else {
+      var gutter = 40;
+      bs = Math.min(1, (vw - gutter * 2) / 1500);
+    }
+    document.documentElement.style.setProperty('--bs', bs);
+  }
+  fit(); window.addEventListener('resize', fit);
+  window.addEventListener('load', function () {
+    // Figma MOBILE frame shows the banner scrolled to its center
+    if (isMobile()) scroller.scrollLeft = Math.max(0, (scroller.scrollWidth - scroller.clientWidth) / 2);
+  });
+
+  // ---------- popup ----------
+  var dim = document.getElementById('dim'), pop = document.getElementById('pop');
+  var popStep = document.getElementById('popStep'), popHint = document.getElementById('popHint'), popFname = document.getElementById('popFname'), popThumb = document.getElementById('popThumb');
+  var file = document.getElementById('file'), browse = document.getElementById('browse'), confirmBtn = document.getElementById('confirm'), drop = document.getElementById('drop');
+
+  function clearPending() { if (pending && pending.url) URL.revokeObjectURL(pending.url); pending = null; }
+  function openPop(step) {
+    clearPending(); current = step;
+    popStep.textContent = step === 1 ? 'Step.01' : 'Step.02';
+    popHint.innerHTML = HINT[step];
+    popFname.textContent = ''; popThumb.removeAttribute('src');
+    pop.classList.remove('has');
+    file.value = '';
+    dim.classList.add('open');
+  }
+  function closePop() { dim.classList.remove('open'); clearPending(); current = null; }
+
+  document.getElementById('popX').addEventListener('click', closePop);
+  dim.addEventListener('click', function (e) { if (e.target === dim) closePop(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dim.classList.contains('open')) closePop(); });
+
+  // Browse.. -> native file picker (PC: file explorer / mobile: camera, photos, files)
+  browse.addEventListener('click', function (e) { e.stopPropagation(); file.click(); });
+  drop.addEventListener('click', function (e) { if (e.target.closest('.browse')) return; file.click(); });
+
+  function acceptFile(f) {
+    if (!f) return;
+    if (!/^image\//.test(f.type) && !/\.(png|jpe?g|svg|webp|gif)$/i.test(f.name)) { alert('Please choose an image file (jpg, png, svg).'); return; }
+    var url = URL.createObjectURL(f);
+    var img = new Image();
+    img.onload = function () {
+      clearPending();
+      pending = { url: url, img: img, name: f.name };
+      popFname.textContent = f.name;
+      popThumb.src = url;
+      pop.classList.add('has');
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); alert('This image could not be loaded. Please try a jpg, png or svg.'); };
+    img.src = url;
+  }
+  file.addEventListener('change', function () { acceptFile(file.files && file.files[0]); });
+  ['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop', function (e) { acceptFile(e.dataTransfer.files && e.dataTransfer.files[0]); });
+
+  confirmBtn.addEventListener('click', function () {
+    if (!pending || !current) return;
+    if (state[current] && state[current].url) URL.revokeObjectURL(state[current].url);
+    state[current] = pending; pending = null;
+    render();
+    dim.classList.remove('open'); current = null;
+  });
+
+  // ---------- hotspots ----------
+  banner.querySelectorAll('.hot').forEach(function (h) {
+    h.addEventListener('click', function () { openPop(+h.dataset.step); });
+  });
+
+  function render() {
+    var both = !!(state[1] && state[2]);
+    [1, 2].forEach(function (s) {
+      var h = banner.querySelector('.hot-' + s), im = h.querySelector('img');
+      if (state[s]) { im.src = state[s].url; h.classList.add('filled'); } else { im.removeAttribute('src'); h.classList.remove('filled'); }
+    });
+    guide.innerHTML = both ? GUIDE_DONE : GUIDE_DEFAULT;
+    dl.disabled = !both; dl.classList.toggle('active', both); dl.classList.remove('done');
+  }
+
+  // ---------- export 1500x500 PNG ----------
+  function drawCover(ctx, img, x, y, w, h) {
+    var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    if (!iw || !ih) { iw = w; ih = h; }
+    var r = Math.max(w / iw, h / ih), dw = iw * r, dh = ih * r;
+    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  }
+  function exportBanner() {
+    return new Promise(function (resolve, reject) {
+      var c = document.createElement('canvas'); c.width = 1500; c.height = 500;
+      var ctx = c.getContext('2d');
+      var bg = new Image();
+      bg.onload = function () {
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 1500, 500);
+        drawCover(ctx, bg, 0, 0, 1500, 500);
+        [1, 2].forEach(function (s) {
+          var g = GEO[s], st = state[s]; if (!st) return;
+          ctx.save(); ctx.beginPath();
+          if (g.round) ctx.arc(g.x + g.w / 2, g.y + g.h / 2, g.w / 2, 0, Math.PI * 2); else ctx.rect(g.x, g.y, g.w, g.h);
+          ctx.closePath(); ctx.clip();
+          drawCover(ctx, st.img, g.x, g.y, g.w, g.h);
+          ctx.restore();
+          ctx.lineWidth = 1; ctx.strokeStyle = '#000'; ctx.beginPath();
+          if (g.round) ctx.arc(g.x + g.w / 2, g.y + g.h / 2, g.w / 2 - 0.5, 0, Math.PI * 2); else ctx.rect(g.x + 0.5, g.y + 0.5, g.w - 1, g.h - 1);
+          ctx.stroke();
+        });
+        c.toBlob(function (blob) { blob ? resolve(blob) : reject(new Error('toBlob failed')); }, 'image/png');
+      };
+      bg.onerror = function () { reject(new Error('background failed')); };
+      bg.src = 'assets/arc_city.jpg';
+    });
+  }
+
+  dl.addEventListener('click', function () {
+    if (dl.disabled || !dl.classList.contains('active')) return;
+    dl.classList.add('loading');
+    exportBanner().then(function (blob) {
+      var fname = 'Arc_X_Banner_1500x500.png';
+      var f = new File([blob], fname, { type: 'image/png' });
+      var mobileShare = /Android|iPhone|iPad/i.test(navigator.userAgent) && navigator.canShare && navigator.canShare({ files: [f] });
+      if (mobileShare) return navigator.share({ files: [f], title: 'Arc X Banner' }).catch(function () {});
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    }).catch(function (e) { alert('Export failed: ' + e.message); })
+      .then(function () {
+        dl.classList.remove('loading'); dl.classList.add('done');
+        setTimeout(function () { dl.classList.remove('done'); }, 1800);
+      });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

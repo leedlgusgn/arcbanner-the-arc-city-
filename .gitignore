@@ -1,0 +1,7 @@
+ctx_*.json
+meta_*.json
+shot_*.json
+shot_*.png
+figma_mcp.py
+figma_mcp.js
+.claude/
