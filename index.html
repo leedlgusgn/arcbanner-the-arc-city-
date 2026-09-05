@@ -29,8 +29,12 @@
 
   /* ================= Page flow (Figma 1920 spacing: logo 80 / text 159 / banner 229 / guide 809 / button 887) ================= */
   main { display: flex; flex-direction: column; align-items: center; padding: 80px var(--gutter) 80px; min-height: 100vh; }
-  .logo { width: 134px; height: 47px; }
+  .logo { width: 134px; height: 47px; opacity: 0; animation: fadeIn 1.5s ease-out forwards; }
+  @keyframes fadeIn { to { opacity: 1; } }
   .welcome { margin: 32px 0 0; text-align: center; font-weight: 700; font-size: 14px; line-height: normal; }
+  .welcome .caret { display: inline-block; width: 2px; height: 1em; margin-left: 2px; background: #000; vertical-align: -0.15em; animation: blink .7s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .logo { animation: none; opacity: 1; } }
   .scroller { margin-top: 32px; width: 100%; display: flex; justify-content: center; }
   .banner-box { position: relative; width: calc(1500px * var(--bs)); height: calc(500px * var(--bs)); flex: 0 0 auto; }
   .banner { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; background: #fff; touch-action: manipulation; }
@@ -259,7 +263,31 @@
     return 'en';
   }
   var HINT = {}, GUIDE_DEFAULT = '', GUIDE_DONE = '';
+  var typing = null;
+  function stopTyping() {
+    if (typing) { clearInterval(typing); typing = null; }
+    var w = document.querySelector('.welcome'); if (w) w.style.minHeight = '';
+  }
+  function typeWelcome(duration) {
+    var el = document.querySelector('.welcome'); if (!el) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    stopTyping();
+    var html = T('welcome');
+    var full = html.replace(/<br\s*\/?>/g, '\n');
+    // reserve final height so the layout below does not jump while typing
+    el.innerHTML = html; el.style.minHeight = el.getBoundingClientRect().height + 'px';
+    el.innerHTML = '<span class="typed"></span><span class="caret" aria-hidden="true"></span>';
+    el.setAttribute('aria-label', full.replace(/\n/g, ' '));
+    var span = el.querySelector('.typed'), i = 0, n = full.length;
+    var t0 = performance.now();
+    typing = setInterval(function () {
+      var k = Math.min(n, Math.round((performance.now() - t0) / duration * n));
+      if (k !== i) { i = k; span.innerHTML = full.slice(0, i).replace(/\n/g, '<br>'); }
+      if (i >= n) { clearInterval(typing); typing = null; el.innerHTML = html; el.style.minHeight = ''; el.removeAttribute('aria-label'); }
+    }, 16);
+  }
   function applyLang(code) {
+    stopTyping();
     lang = I18N[code] ? code : 'en';
     document.documentElement.lang = lang;
     try { localStorage.setItem('arcx-lang', lang); } catch (e) {}
@@ -466,6 +494,7 @@
   });
 
   applyLang(detectLang());
+  typeWelcome(2000);
 })();
 </script>
 </body>
