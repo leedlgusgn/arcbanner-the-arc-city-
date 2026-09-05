@@ -76,8 +76,10 @@
   .pop .title { position: absolute; left: 50%; top: 31px; transform: translateX(-50%); text-align: center; margin: 0; white-space: nowrap; line-height: normal; }
   .pop .title b { display: block; font-size: 18px; font-weight: 700; color: var(--navy); }
   .pop .title small { display: block; font-size: 18px; font-weight: 500; color: var(--gray-c2); }
-  .pop .drop { position: absolute; left: 50%; top: 113px; transform: translateX(-50%); width: 223px; height: 135px; border: 2px dashed var(--gray-c2); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 12px; text-align: center; cursor: pointer; }
-  .pop .drop.over { border-color: var(--navy); }
+  .pop .drop { position: absolute; left: 50%; top: 113px; transform: translateX(-50%); width: 223px; height: 135px; border: 0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 12px; text-align: center; cursor: pointer; }
+  .pop .drop .dash { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .pop .drop .dash rect { fill: none; stroke: var(--gray-c2); stroke-width: 2; stroke-dasharray: 2 2; }
+  .pop .drop.over .dash rect { stroke: var(--navy); }
   .pop .hint { margin: 0; font-size: 11px; font-weight: 600; color: var(--gray-c2); line-height: normal; width: 178px; }
   .pop .hint em { display: block; font-style: normal; font-weight: 400; }
   .pop .thumb { width: 44px; height: 44px; object-fit: cover; border: 1px solid #000; display: none; }
@@ -135,6 +137,7 @@
     <button class="x" id="popX" aria-label="Close"><img src="assets/icon_close.svg" width="12" height="12" alt=""></button>
     <p class="title"><b id="popStep">Step.01</b><small>(jpg,png,svg)</small></p>
     <div class="drop" id="drop">
+      <svg class="dash" viewBox="0 0 223 135" aria-hidden="true"><rect x="1" y="1" width="221" height="133" rx="7" ry="7"/></svg>
       <p class="hint" id="popHint"></p>
       <img class="thumb" id="popThumb" alt="">
       <p class="fname" id="popFname"></p>
