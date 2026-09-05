@@ -32,23 +32,11 @@
   .welcome { margin: 32px 0 0; text-align: center; font-weight: 700; font-size: 14px; line-height: normal; }
   .scroller { margin-top: 32px; width: 100%; display: flex; justify-content: center; }
   .banner-box { position: relative; width: calc(1500px * var(--bs)); height: calc(500px * var(--bs)); flex: 0 0 auto; }
-  .banner { position: absolute; left: 0; top: 0; width: 1500px; height: 500px; overflow: hidden; background: #fff; transform: scale(var(--bs)); transform-origin: 0 0; }
+  .banner { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; background: #fff; touch-action: manipulation; }
+  .banner.pointer { cursor: pointer; }
   .guide { margin: 80px 0 0; text-align: center; font-weight: 500; font-size: 14px; line-height: normal; }
   .dl-wrap { margin-top: 40px; }
 
-  /* ================= Banner component (1500x500 logical) ================= */
-  .banner > .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-  .hot { position: absolute; padding: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 20px; line-height: 1; border: 1px solid #000; overflow: hidden; }
-  .hot::after { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,0); transition: background .15s; pointer-events: none; }
-  .hot:hover::after { background: rgba(255,255,255,.4); }
-  .hot.filled::after { display: none; }
-  .hot .ph { position: relative; }
-  .hot.filled .ph { display: none; }
-  .hot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
-  .hot.filled img { display: block; }
-  .hot-1 { left: 747px; top: 200px; width: 58px; height: 58px; border-radius: 50%; background: var(--step1); }
-  .hot-2 { left: 1255px; top: 236px; width: 154px; height: 95px; background: var(--step2); }
-  .hot.filled { background: #fff; }
 
   /* ================= Download button (218x59) ================= */
   .dl {
@@ -109,11 +97,7 @@
 
   <div class="scroller" id="scroller">
     <div class="banner-box">
-      <div class="banner" id="banner">
-        <img class="bg" src="assets/arc_city.jpg" alt="The Arc City ; Builders of the Economic OS">
-        <button class="hot hot-1" data-step="1" aria-label="Step 01: upload your image"><span class="ph">+</span><img alt=""></button>
-        <button class="hot hot-2" data-step="2" aria-label="Step 02: upload a flag, logo or image"><span class="ph">+</span><img alt=""></button>
-      </div>
+      <canvas class="banner" id="banner" width="1500" height="500" role="img" aria-label="Arc X banner preview. Click the blue circle (Step 01) or the red square (Step 02) to upload an image."></canvas>
     </div>
   </div>
 
@@ -236,17 +220,59 @@
     dim.classList.remove('open'); current = null;
   });
 
-  // ---------- hotspots ----------
-  banner.querySelectorAll('.hot').forEach(function (h) {
-    h.addEventListener('click', function () { openPop(+h.dataset.step); });
-  });
+  // ---------- single-canvas preview: background + slots rasterized together => no drift at any scale ----------
+  var COLOR = { 1: '#938FFF', 2: '#FF7070' };
+  var bgImg = new Image(); var bgReady = false;
+  bgImg.onload = function () { bgReady = true; paint(); };
+  bgImg.src = 'assets/arc_city.jpg';
+  if (document.fonts && document.fonts.load) { document.fonts.load('700 20px "Noto Sans"').then(paint, paint); }
+
+  var hover = null;
+  function slotPath(ctx, g, inset) {
+    inset = inset || 0; ctx.beginPath();
+    if (g.round) ctx.arc(g.x + g.w / 2, g.y + g.h / 2, g.w / 2 - inset, 0, Math.PI * 2);
+    else ctx.rect(g.x + inset, g.y + inset, g.w - inset * 2, g.h - inset * 2);
+    ctx.closePath();
+  }
+  function drawScene(ctx, opts) {
+    opts = opts || {};
+    ctx.clearRect(0, 0, 1500, 500);
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 1500, 500);
+    if (bgReady) drawCover(ctx, bgImg, 0, 0, 1500, 500);
+    [1, 2].forEach(function (s) {
+      var g = GEO[s], st = state[s];
+      ctx.save(); slotPath(ctx, g); ctx.clip();
+      if (st) { drawCover(ctx, st.img, g.x, g.y, g.w, g.h); }
+      else { ctx.fillStyle = COLOR[s]; ctx.fillRect(g.x, g.y, g.w, g.h); }
+      if (!opts.export && hover === s) { ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fillRect(g.x, g.y, g.w, g.h); }
+      ctx.restore();
+      if (!st && !opts.export) {
+        ctx.fillStyle = '#fff'; ctx.font = '700 20px "Noto Sans", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('+', g.x + g.w / 2, g.y + g.h / 2 + 1);
+      }
+      ctx.lineWidth = 1; ctx.strokeStyle = '#000'; slotPath(ctx, g, 0.5); ctx.stroke();
+    });
+  }
+  var bctx = banner.getContext('2d');
+  function paint() { drawScene(bctx); }
+
+  function hitTest(evt) {
+    var r = banner.getBoundingClientRect();
+    var x = (evt.clientX - r.left) * 1500 / r.width, y = (evt.clientY - r.top) * 500 / r.height;
+    for (var s = 1; s <= 2; s++) {
+      var g = GEO[s];
+      if (g.round) { var dx = x - (g.x + g.w / 2), dy = y - (g.y + g.h / 2); if (dx * dx + dy * dy <= (g.w / 2) * (g.w / 2)) return s; }
+      else if (x >= g.x && x <= g.x + g.w && y >= g.y && y <= g.y + g.h) return s;
+    }
+    return null;
+  }
+  banner.addEventListener('mousemove', function (e) { var h = hitTest(e); if (h !== hover) { hover = h; banner.classList.toggle('pointer', !!h); paint(); } });
+  banner.addEventListener('mouseleave', function () { if (hover) { hover = null; banner.classList.remove('pointer'); paint(); } });
+  banner.addEventListener('click', function (e) { var h = hitTest(e); if (h) openPop(h); });
 
   function render() {
     var both = !!(state[1] && state[2]);
-    [1, 2].forEach(function (s) {
-      var h = banner.querySelector('.hot-' + s), im = h.querySelector('img');
-      if (state[s]) { im.src = state[s].url; h.classList.add('filled'); } else { im.removeAttribute('src'); h.classList.remove('filled'); }
-    });
+    paint();
     guide.innerHTML = both ? GUIDE_DONE : GUIDE_DEFAULT;
     dl.disabled = !both; dl.classList.toggle('active', both); dl.classList.remove('done');
   }
@@ -260,27 +286,10 @@
   }
   function exportBanner() {
     return new Promise(function (resolve, reject) {
+      if (!bgReady) return reject(new Error('background not loaded yet'));
       var c = document.createElement('canvas'); c.width = 1500; c.height = 500;
-      var ctx = c.getContext('2d');
-      var bg = new Image();
-      bg.onload = function () {
-        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 1500, 500);
-        drawCover(ctx, bg, 0, 0, 1500, 500);
-        [1, 2].forEach(function (s) {
-          var g = GEO[s], st = state[s]; if (!st) return;
-          ctx.save(); ctx.beginPath();
-          if (g.round) ctx.arc(g.x + g.w / 2, g.y + g.h / 2, g.w / 2, 0, Math.PI * 2); else ctx.rect(g.x, g.y, g.w, g.h);
-          ctx.closePath(); ctx.clip();
-          drawCover(ctx, st.img, g.x, g.y, g.w, g.h);
-          ctx.restore();
-          ctx.lineWidth = 1; ctx.strokeStyle = '#000'; ctx.beginPath();
-          if (g.round) ctx.arc(g.x + g.w / 2, g.y + g.h / 2, g.w / 2 - 0.5, 0, Math.PI * 2); else ctx.rect(g.x + 0.5, g.y + 0.5, g.w - 1, g.h - 1);
-          ctx.stroke();
-        });
-        c.toBlob(function (blob) { blob ? resolve(blob) : reject(new Error('toBlob failed')); }, 'image/png');
-      };
-      bg.onerror = function () { reject(new Error('background failed')); };
-      bg.src = 'assets/arc_city.jpg';
+      drawScene(c.getContext('2d'), { export: true });
+      c.toBlob(function (blob) { blob ? resolve(blob) : reject(new Error('toBlob failed')); }, 'image/png');
     });
   }
 
