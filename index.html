@@ -390,11 +390,41 @@
   // ---------- single-canvas preview: background + slots rasterized together => no drift at any scale ----------
   var COLOR = { 1: '#938FFF', 2: '#FF7070' };
   var bgImg = new Image(); var bgReady = false;
-  bgImg.onload = function () { bgReady = true; paint(); };
+  var bgCache = document.createElement('canvas'); bgCache.width = 1500; bgCache.height = 500;
+  bgImg.onload = function () {
+    var cc = bgCache.getContext('2d'); cc.fillStyle = '#fff'; cc.fillRect(0, 0, 1500, 500); drawCover(cc, bgImg, 0, 0, 1500, 500);
+    bgReady = true; paint(); startPulse();
+  };
   bgImg.src = 'assets/arc_city.jpg';
   if (document.fonts && document.fonts.load) { document.fonts.load('700 20px "Noto Sans"').then(paint, paint); }
 
   var hover = null;
+  var pulse = { 1: 1, 2: 1 }, pulseRaf = null, pulseT0 = 0;
+  var PULSE_PERIOD = 2000, PULSE_AMP = 0.05, PULSE_DELAY = { 1: 0, 2: 1000 };
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function pulseTick(now) {
+    var active = false;
+    [1, 2].forEach(function (s) {
+      if (state[s]) { pulse[s] = 1; return; }
+      active = true;
+      var t = now - pulseT0 - PULSE_DELAY[s];
+      if (t < 0) { pulse[s] = 1; return; }
+      var ph = (t % PULSE_PERIOD) / PULSE_PERIOD;              // 0..1 over 2s
+      pulse[s] = 1 + PULSE_AMP * (1 - Math.cos(ph * Math.PI * 2)) / 2; // 1 -> 1.05 -> 1, smooth
+    });
+    paint();
+    pulseRaf = active ? requestAnimationFrame(pulseTick) : null;
+    if (!active) { pulse[1] = pulse[2] = 1; paint(); }
+  }
+  function startPulse() {
+    if (reduceMotion || pulseRaf) return;
+    pulseT0 = performance.now();
+    pulseRaf = requestAnimationFrame(pulseTick);
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { if (pulseRaf) { cancelAnimationFrame(pulseRaf); pulseRaf = null; } }
+    else if (bgReady) startPulse();
+  });
   function slotPath(ctx, g, inset) {
     inset = inset || 0; ctx.beginPath();
     if (g.round) ctx.arc(g.x + g.w / 2, g.y + g.h / 2, g.w / 2 - inset, 0, Math.PI * 2);
@@ -405,9 +435,11 @@
     opts = opts || {};
     ctx.clearRect(0, 0, 1500, 500);
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 1500, 500);
-    if (bgReady) drawCover(ctx, bgImg, 0, 0, 1500, 500);
+    if (bgReady) ctx.drawImage(bgCache, 0, 0);
     [1, 2].forEach(function (s) {
-      var g = GEO[s], st = state[s];
+      var g0 = GEO[s], st = state[s];
+      var k = (!st && !opts.export) ? (pulse[s] || 1) : 1;
+      var g = k === 1 ? g0 : { x: g0.x + g0.w * (1 - k) / 2, y: g0.y + g0.h * (1 - k) / 2, w: g0.w * k, h: g0.h * k, round: g0.round };
       ctx.save(); slotPath(ctx, g); ctx.clip();
       if (st) { drawCover(ctx, st.img, g.x, g.y, g.w, g.h); }
       else { ctx.fillStyle = COLOR[s]; ctx.fillRect(g.x, g.y, g.w, g.h); }
