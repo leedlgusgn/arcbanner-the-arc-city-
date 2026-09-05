@@ -257,7 +257,7 @@
   var lang = 'en';
   function T(k) { return (I18N[lang] && I18N[lang][k]) || I18N.en[k]; }
   function detectLang() {
-    try { var saved = localStorage.getItem('arcx-lang'); if (saved && I18N[saved]) return saved; } catch (e) {}
+    try { var saved = localStorage.getItem('arcx-lang-v2'); if (saved && I18N[saved]) return saved; } catch (e) {}
     return 'en'; // default is always English; only an explicit user choice (saved above) overrides it
   }
   var HINT = {}, GUIDE_DEFAULT = '', GUIDE_DONE = '';
@@ -288,7 +288,7 @@
     stopTyping();
     lang = I18N[code] ? code : 'en';
     document.documentElement.lang = lang;
-    try { localStorage.setItem('arcx-lang', lang); } catch (e) {}
+    try { localStorage.setItem('arcx-lang-v2', lang); } catch (e) {}
     HINT[1] = T('hint1') + '<em>' + T('size1') + '</em>';
     HINT[2] = T('hint2') + '<em>' + T('size2') + '</em>';
     GUIDE_DEFAULT = T('guide'); GUIDE_DONE = T('done');
