@@ -34,7 +34,7 @@
   .welcome { margin: 32px 0 0; text-align: center; font-weight: 700; font-size: 14px; line-height: normal; }
   .welcome .caret { display: inline-block; width: 2px; height: 1em; margin-left: 2px; background: #000; vertical-align: -0.15em; animation: blink .7s step-end infinite; }
   @keyframes blink { 50% { opacity: 0; } }
-  @media (prefers-reduced-motion: reduce) { .logo { animation: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .logo, #dim.open, #dim.open .pop { animation: none; opacity: 1; } }
   .scroller { margin-top: 32px; width: 100%; display: flex; justify-content: center; }
   .banner-box { position: relative; width: calc(1500px * var(--bs)); height: calc(500px * var(--bs)); flex: 0 0 auto; }
   .banner { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; background: #fff; touch-action: manipulation; }
@@ -70,7 +70,10 @@
 
   /* ================= Popup (280x354) ================= */
   #dim { position: fixed; inset: 0; background: rgba(0,0,0,.72); display: none; align-items: center; justify-content: center; z-index: 50; }
-  #dim.open { display: flex; }
+  #dim.open { display: flex; animation: dimIn .25s ease-out both; }
+  #dim.open .pop { animation: slideUp .38s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes dimIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { transform: translateY(72px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   .pop { position: relative; width: 280px; height: 354px; background: #fff; border: 1px solid var(--gray-c2); border-radius: 18px; overflow: hidden; }
   .pop .x { position: absolute; right: 13px; top: 13px; width: 20px; height: 20px; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center; }
   .pop .title { position: absolute; left: 50%; top: 31px; transform: translateX(-50%); text-align: center; margin: 0; white-space: nowrap; line-height: normal; }
